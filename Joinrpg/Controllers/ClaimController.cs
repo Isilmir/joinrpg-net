@@ -7,9 +7,7 @@ using JetBrains.Annotations;
 using JoinRpg.Data.Interfaces;
 using JoinRpg.DataModel;
 using JoinRpg.Domain;
-using JoinRpg.Experimental.Plugin.Interfaces;
 using JoinRpg.Helpers;
-using JoinRpg.PluginHost.Interfaces;
 using JoinRpg.Services.Interfaces;
 using JoinRpg.Web.Controllers.Common;
 using JoinRpg.Web.Helpers;
@@ -17,7 +15,6 @@ using JoinRpg.Web.Models;
 using JoinRpg.Web.Models.Characters;
 using JoinRpg.Web.Models.CommonTypes;
 using JoinRpg.Web.Models.Plot;
-using JoinRpg.Web.Models.Print;
 
 namespace JoinRpg.Web.Controllers
 {
@@ -27,7 +24,6 @@ namespace JoinRpg.Web.Controllers
     private readonly IPlotRepository _plotRepository;
     private readonly IClaimsRepository _claimsRepository;
     private IFinanceService FinanceService { get; }
-    private IPluginFactory PluginFactory { get; }
 
     [HttpGet]
     [Authorize]
@@ -47,14 +43,13 @@ namespace JoinRpg.Web.Controllers
 
     public ClaimController(ApplicationUserManager userManager, IProjectRepository projectRepository,
       IProjectService projectService, IClaimService claimService, IPlotRepository plotRepository,
-      IClaimsRepository claimsRepository, IFinanceService financeService, IExportDataService exportDataService, IPluginFactory pluginFactory)
+      IClaimsRepository claimsRepository, IFinanceService financeService, IExportDataService exportDataService)
       : base(userManager, projectRepository, projectService, exportDataService)
     {
       _claimService = claimService;
       _plotRepository = plotRepository;
       _claimsRepository = claimsRepository;
       FinanceService = financeService;
-      PluginFactory = pluginFactory;
     }
 
     [HttpPost]
@@ -152,12 +147,7 @@ namespace JoinRpg.Web.Controllers
           CurrentFee = claim.ClaimCurrentFee()
         },
         Problems = claim.GetProblems().Select(p => new ProblemViewModel(p)).ToList(),
-        PlayerDetails = UserProfileDetailsViewModel.FromUser(claim.Player),
-        PrintPlugins = claim.HasMasterAccess(CurrentUserId) && claim.IsApproved
-          ? (await PluginFactory.GetPossibleOperations<IPrintCardPluginOperation>(claim.ProjectId)).Where(
-            p => p.AllowPlayerAccess || claim.HasMasterAccess(CurrentUserId)).Select(
-              PluginOperationDescriptionViewModel.Create)
-          : Enumerable.Empty<PluginOperationDescriptionViewModel>()
+        PlayerDetails = UserProfileDetailsViewModel.FromUser(claim.Player)
       };
 
       if (claimViewModel.Comments.Any(c => !c.IsRead))
